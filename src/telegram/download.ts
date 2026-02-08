@@ -1,5 +1,6 @@
 import { detectMime } from "../media/mime.js";
 import { type SavedMedia, saveMediaBuffer } from "../media/store.js";
+import { makeProxyFetch, resolveTelegramProxyUrl } from "./proxy.js";
 
 export type TelegramFileInfo = {
   file_id: string;
@@ -12,8 +13,11 @@ export async function getTelegramFile(
   token: string,
   fileId: string,
   timeoutMs = 30_000,
+  proxyUrl?: string,
 ): Promise<TelegramFileInfo> {
-  const res = await fetch(
+  const resolvedProxyUrl = resolveTelegramProxyUrl(proxyUrl);
+  const fetcher = resolvedProxyUrl ? makeProxyFetch(resolvedProxyUrl) : fetch;
+  const res = await fetcher(
     `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
     { signal: AbortSignal.timeout(timeoutMs) },
   );
@@ -32,12 +36,15 @@ export async function downloadTelegramFile(
   info: TelegramFileInfo,
   maxBytes?: number,
   timeoutMs = 60_000,
+  proxyUrl?: string,
 ): Promise<SavedMedia> {
   if (!info.file_path) {
     throw new Error("file_path missing");
   }
   const url = `https://api.telegram.org/file/bot${token}/${info.file_path}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  const resolvedProxyUrl = resolveTelegramProxyUrl(proxyUrl);
+  const fetcher = resolvedProxyUrl ? makeProxyFetch(resolvedProxyUrl) : fetch;
+  const res = await fetcher(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok || !res.body) {
     throw new Error(`Failed to download telegram file: HTTP ${res.status}`);
   }

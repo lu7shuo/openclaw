@@ -1,4 +1,4 @@
-import { makeProxyFetch } from "./proxy.js";
+import { makeProxyFetch, resolveTelegramProxyUrl } from "./proxy.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
@@ -37,7 +37,8 @@ export async function probeTelegram(
   proxyUrl?: string,
 ): Promise<TelegramProbe> {
   const started = Date.now();
-  const fetcher = proxyUrl ? makeProxyFetch(proxyUrl) : fetch;
+  const resolvedProxyUrl = resolveTelegramProxyUrl(proxyUrl);
+  const fetcher = resolvedProxyUrl ? makeProxyFetch(resolvedProxyUrl) : fetch;
   const base = `${TELEGRAM_API_BASE}/bot${token}`;
 
   const result: TelegramProbe = {
